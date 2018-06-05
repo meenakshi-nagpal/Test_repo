@@ -1,0 +1,664 @@
+@(projectid: String, username: String)
+
+@main("UDAS Search Portal") {
+
+<!-- layout -->
+<div class="container-fluid">
+	<div class="page-header page-header-bac">
+		<br><h1 style="color:#fff">UDAS Search Portal</h1>
+	</div>
+	<div class="project-info"></div>
+	<div class="search-info" id="searchDiv"></div>
+	<div class="page"></div>
+</div>
+
+<!-- templates -->
+
+<script type="text/template" id="info-project-template">
+  <div class="panel panel-default">
+    <div class="panel-body">
+      login as : <%= htmlEncode(user.get('firstName')) %> <%= htmlEncode(user.get('lastName')) %> (<%= htmlEncode(user.get('userName')) %>)<br>
+      AIMS Project : <%= htmlEncode(project.get('name')) %> (<%= htmlEncode(project.get('id')) %>)<br>
+      AIT : <%= htmlEncode(project.get('ait').name) %> (<%= htmlEncode(project.get('ait').id) %>)
+    </div>
+  </div>   
+</script>
+
+<script type="text/template" id="search-template">
+  <div class="panel panel-default">
+  	<div class="panel-heading">
+  		Search By
+  	</div>
+	<div class="panel-body">
+		<div class="input-group">
+					<span class="input-group-addon"> File Name</span>
+					<input type="text" class="form-control col-sm-1" placeholder="" id="searchtext">
+					<label class="input-group-addon" style="background-color: white; border: 0px;" ></label>
+
+					<span class="input-group-addon"> Date </span>
+					<span class="input-group-btn">
+						<div class="btn-group"> 
+							<a class="btn btn-default dropdown-toggle btn-select2" data-toggle="dropdown" href="#">Retention Start <span class="caret"></span></a>
+            				<ul class="dropdown-menu" id="searchby">
+                				<li><a href="#">Retention Start</a></li>
+                				<li><a href="#">Ingestion Date</a></li>
+            				</ul>
+        				</div>
+      				</span>
+					<span class="input-group-btn">
+						<div class="btn-group"> 
+							<a class="btn btn-default dropdown-toggle btn-select2" data-toggle="dropdown" href="#"> = <span class="caret"></span></a>
+            				<ul class="dropdown-menu"  id="datecomparison">
+                				<li><a href="#">=</a></li>
+                				<li><a href="#">></a></li>
+                				<li><a href="#"><</a></li>
+                				<li><a href="#">bt</a></li>
+            				</ul>
+        				</div>
+      				</span>
+					<div class="input-group date" id="datetimepicker">
+                		<input name="maturitydate" id="maturitydate" placeholder="YYYY-MM-DD" type="date" class="form-control">
+                		<span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
+              		</div>
+					<span class="input-group-addon hidden"  id="span-btween"> and </span>
+					<div class="input-group date hidden" id="datetimepicker2">
+                		<input name="maturitydate2" id="maturitydate2" placeholder="YYYY-MM-DD" type="date" class="form-control">
+                		<span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
+              		</div>
+    			</div><!-- /input-group -->
+				</br>
+				<div class="input-group col-sm-6">
+					<span class="input-group-addon"> Sort By </span>
+					<span class="input-group-btn">
+						<div class="btn-group"> 
+							<a class="btn btn-default dropdown-toggle btn-select2" data-toggle="dropdown" href="#">Ingestion Date <span class="caret"></span></a>
+            				<ul class="dropdown-menu" id="sortby">
+                				<li><a href="#">Ingestion Date</a></li>
+                				<li><a href="#">Retention Start</a></li>
+                				<li><a href="#">File Name</a></li>
+            				</ul>
+        				</div>
+      				</span>
+					<label class="input-group-addon" style="background-color: white; border: 0px;" ></label>
+					<span class="input-group-addon"> Order </span>
+					<span class="input-group-btn">
+						<div class="btn-group"> 
+							<a class="btn btn-default dropdown-toggle btn-select2" data-toggle="dropdown" href="#">Descending <span class="caret"></span></a>
+            				<ul class="dropdown-menu" id="order">
+                				<li><a href="#">Descending</a></li>
+                				<li><a href="#">Ascending</a></li>
+            				</ul>
+        				</div>
+      				</span>
+					<label class="input-group-addon" style="background-color: white; border: 0px;" ></label>
+
+					<span class="input-group-addon"> Show </span>
+					<span class="input-group-btn">
+						<div class="btn-group"> 
+							<a class="btn btn-default dropdown-toggle btn-select2" data-toggle="dropdown" href="#"> 50 <span class="caret"></span></a>
+            				<ul class="dropdown-menu"  id="recordperpage">
+                				<li><a href="#">200</a></li>
+                				<li><a href="#">100</a></li>
+                				<li><a href="#">50</a></li>
+                				<li><a href="#">20</a></li>
+            				</ul>
+        				</div>
+      				</span>
+					<label class="input-group-addon" style="background-color: white; border: 0px;" ></label>
+      				<span class="input-group-btn">
+						<button class="btn btn-success search-btn" type="button"><span class="glyphicon glyphicon-search" aria-hidden="true"></span>Search</button>
+      				</span>
+    			</div>
+
+
+				<div class="alert alert-danger hidden" role="alert" id="errorMsg"></div>
+		</div><!-- panel body -->
+  </div>   
+</script>
+
+
+<script type="text/template" id="list-archive-template">
+  <div class="panel panel-default">
+    <!--div class="panel-body">
+      <table class="table">
+        <tr><td style="border-top: none;">
+          <form class="form-inline" role="form" action="/portal/projects/<%= projectid %>/archives" method="POST" enctype="multipart/form-data" id="archive-form">
+            <div class="form-group">
+              <input name="file" id="file" type="file" placeholder="file">
+            </div>
+            <div class="form-group">
+              <input name="extendedMetadata" id="extendedMetadata" type="file" placeholder="extendedMetadata">
+            </div>
+            <div class="form-group">
+              <label class="sr-only" for="maturitydate">Maturity Date</label> 
+              <div class="input-group date" id="datetimepicker">
+                <input name="maturitydate" id="maturitydate" placeholder="Maturity YYYY-MM-DD" type="date" class="form-control">
+                <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
+              </div>
+            </div>
+            <button class="btn btn-default" type="submit">archive</button>
+          </form> 
+      </td></tr>
+      </table>
+    </div-->
+
+		<div class="row">
+  			<nav>
+ 	 				<ul class="pager">
+						<li class="left" id="prev">
+							<a href="#">
+        						<span class="glyphicon glyphicon-circle-arrow-left" aria-hidden="true"></span>
+      						</a>
+						</li>
+    					<li> Page - <%= page + 1 %></li>
+    					<li class="right" id="nxt">
+      						<a href="#">
+        						<span class="glyphicon glyphicon-circle-arrow-right" aria-hidden="true"></span>
+      						</a>
+    					</li>
+  					</ul>
+			</nav>
+		</div><!-- /.row -->
+
+    <div class="table-responsive">
+      <table class="table table-striped table-condensed">
+      	<thead>
+      	  <tr>
+            <th>Ingestion Date</th>
+      	    <th>File <span class="badge"><%= length %></span></th>
+            <th>Record Code</th>
+            <th>Country</th>
+      	    <th>Retention Start</th>
+      	    <th>Retention End</th>
+			<th>Metadata File</th>
+			<th>Archived File</th>
+      	    <th colspan="2"></th>
+      	  </tr>
+      	</thead>
+      	<tbody>
+      	  <% _.each(archiveModels, function(archive) { %>
+      	  	<tr>
+              <td><%= moment(archive.get('ingestionStart')).format('YYYY-MM-DD') %></td>
+      	  	  <td><%= htmlEncode(archive.get('fileName')) %></td>
+              <td><%= htmlEncode(archive.get('recordCode')) %></td>
+              <td><%= htmlEncode(archive.get('country')) %></td>
+      	  	  <td><%= archive.get('eventBased') == "ENABLED" ? "":moment(archive.get('retentionStart')).format('YYYY-MM-DD') %></td>
+      	  	  <td><%= archive.get('retentionEnd') == null ? "PERMANENT":moment(archive.get('retentionEnd')).format('YYYY-MM-DD')  %></td>
+ 			  <td>
+					<a class="<%= archive.get('metadataUrl') == null ?  '': 'btn btn-default btn-xs' %>" href="<%= archive.get('metadataUrl') + '/download' %>" target='_blank'><%= archive.get('metadataUrl') == null ?  '': 'Download' %></a>
+					<!--a class="btn btn-default btn-xs" id="viewlink" href="" data-link="<%= htmlEncode(archive.get('metadataUrl')) %>">View</a-->
+				<!--a href="<%= htmlEncode(archive.get('metadataUrl')) %>"><span class="glyphicon glyphicon-download" aria-hidden="true" style="font-size: 22px" aria-label="Download metadata File"></span></a-->
+				<!--a href="<%= htmlEncode(archive.get('metadataUrl')) %>"><span class="glyphicon glyphicon-eye-open" aria-hidden="true" style="font-size: 22px" aria-label = "View metadata File"></span></a-->
+			  </td>
+				
+              <td><a class="btn btn-default btn-xs" href="<%= archive.get('locationUrl') %>" target='_blank'>Download</a></td>
+      	  	  <td><a class="btn btn-default btn-xs" href="#/<%= archive.get('guid') %>">Detail</a></td>
+      	  	</tr>
+      	  <% }); %>
+      	</tbody>
+      </table>
+    </div>
+  </div>
+</script>
+
+<script type="text/template" id="detail-archive-template">
+  <div class="panel panel-default">
+    <div class="panel-heading"> 
+      Archive File      
+    </div>
+    <div class="panel-body"> 
+          <a class="btn btn-default" href="#">back</a>
+          <a class="btn btn-default" href="<%= htmlEncode(archive.get('locationUrl')) %>">recall</a>          
+    </div>
+    <div class="table-responsive">    
+      <table class="table table-striped table-condensed">
+        <tbody>
+          <tr><td>GUID</td><td><%= archive.get('guid') %></td></tr>
+          <tr><td>Maturity Date</td><td><%= archive.get('eventBased') == "ENABLED" ? "":new Date(archive.get('retentionStart')) %></td></tr>
+          <tr><td>Retention End</td><td><%= new Date(archive.get('retentionEnd')) %></td></tr>
+          <tr><td>File Name</td><td><%= htmlEncode(archive.get('fileName')) %></td></tr>
+          <tr><td>File Size</td><td><%= archive.get('fileSize') %> bytes (<%= numeral(archive.get('fileSize')).format('0.0 b') %>)</td></tr>
+          <tr><td>Record Code</td><td><%= htmlEncode(archive.get('recordCode')) %></td></tr>
+          <tr><td>Country</td><td><%= htmlEncode(archive.get('country')) %></td></tr>
+          <tr><td>Ingestion Start</td><td><%= new Date(archive.get('ingestionStart')) %></td></tr>
+          <tr><td>Ingestion End</td><td><%= new Date(archive.get('ingestionEnd')) %></td></tr>
+          <tr><td>Status</td><td><%= archive.get('status') %></td></tr>
+          <tr><td>Ingestion User</td><td><%= htmlEncode(archive.get('ingestionUser')) %></td></tr></td></tr>
+          <tr><td>Source Server</td><td><%= htmlEncode(archive.get('sourceServer')) %></td></tr>
+          <tr><td>Source Namespace</td><td><%= htmlEncode(archive.get('sourceNamespace')) %></td></tr>
+          <tr><td>User Agent</td><td><%= htmlEncode(archive.get('userAgent')) %></td></tr>
+          <tr><td>Modification Date</td><td><%= new Date(archive.get('modificationTimestamp')) %></td></tr>
+          <tr><td>Location URL</td><td><%= archive.get('locationUrl') %></td></tr>
+          <tr><td>Metadata URL</td><td><%= archive.get('metadataUrl') %></td></tr>
+          <tr><td>Metadata Size</td><td><%= archive.get('metadataSize') %> bytes (<%= numeral(archive.get('metadataSize')).format('0.0 b') %>)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</script>
+
+<!-- MVC -->
+<script>
+
+
+	var projectid = '@projectid';
+	var username = '@username';
+	var page = 0;
+	var pagesize = 50;	
+	var archlength = 50;
+	var searchby = "Retention Start";
+	var datecomparison = "=";
+	var error=false;
+	var errorMsg="";
+	var sortby = "ingestiondate";
+	var order = "desc"
+	var isDirty = false;
+
+
+    function htmlEncode(value){
+      return $('<div/>').text(value).html();
+    }
+    
+    function validateDate(input){
+    		
+        	var validformat='/^\d{4}[\/\-](0?[1-9]|1[012])[\/\-](0?[1-9]|[12][0-9]|3[01])$/';  
+        	var returnval=false;
+
+        	if (!validformat.match(input.value))
+        		errorMsg = "Invalid Date Format at " +  input + ". Expected Date format is YYYY-MM-DD";
+        	else{
+        		var inputarr = input.split("-");
+        		
+        		var year=inputarr[0];
+        		var month=inputarr[1];
+        		var day=inputarr[2];
+        		
+        		var dayobj = new Date(year, month-1, day);
+        		
+        		if ((dayobj.getMonth()+1!=month)||(dayobj.getDate()!=day)||(dayobj.getFullYear()!=year))
+        			errorMsg = "Invalid Date Format at " +  input + ". Expected Date format is YYYY-MM-DD";
+        		else
+        			returnval=true;
+        	}
+
+       		return returnval;
+	}
+	
+    function compareDate(date1, date2){
+		var d1 = new Date(date1);
+		var d2 = new Date(date2);
+		
+		if(d1 && d2){
+			
+			if(d2.getTime() <= d1.getTime()){
+				errorMsg = "End Date has to be later than start date."
+				return false;
+    		}
+    		else
+    			return true;
+    	}
+	}
+    
+    $.fn.serializeObject = function() {
+      var o = {};
+      var a = this.serializeArray();
+      $.each(a, function() {
+          if (o[this.name] !== undefined) {
+              if (!o[this.name].push) {
+                  o[this.name] = [o[this.name]];
+              }
+              o[this.name].push(this.value || '');
+          } else {
+              o[this.name] = this.value || '';
+          }
+      });
+      return o;
+    };
+
+  var ArchiveCollection = Backbone.Collection.extend({
+  	url : function(){
+  	    var url = '/app/1/projects/' + projectid + '/archives';
+  	    
+  	    var query = "";
+  	    var searchtext="";
+  	    var pickeddate=$("#maturitydate").val();
+  	    var pickeddate2 = $("#maturitydate2").val();
+  	  
+  	    searchtext=$("#searchtext").val().trim();
+  	    
+  	    query = query + "?length=" + pagesize + "&offset=" + page + "&sortby=" + sortby  + "&order=" + order ;
+
+  	    if(!!searchtext){
+  	    	query = query + '&filename=' + searchtext;
+  	    }
+  	    
+    	if(pickeddate){
+    		if(validateDate(pickeddate))
+    		{
+    			error=false;
+				errorMsg="";
+  			}
+    		else
+    		{
+    			error=true;
+    		}
+  		}	
+    	
+		if(searchby==='Retention Start' && !!pickeddate && !error){
+        	var comp = "=";
+        	if(datecomparison==="=")
+        		comp = "=";
+        	if(datecomparison==="<")
+        		comp = "=lt_";
+        	if(datecomparison===">")
+        		comp = "=gt_";
+        	if(datecomparison==="bt"){
+        		if(!!pickeddate2)
+        		{
+        	    	if(validateDate(pickeddate2) && compareDate(pickeddate, pickeddate2))
+        	    	{
+        	    		error=false;
+        				errorMsg="";
+        	  		}
+        	    	else
+        	    	{
+        	    		error=true;
+        	    	}
+        	    	
+        			comp = "_bt_";
+        		}
+        		else
+        		{
+        			error=true;
+        			errorMsg="End Date Needed";
+        		}
+        	}
+        	if(datecomparison==="bt")
+       			query = query +"&"+"retentionstart=" + pickeddate + comp + pickeddate2;
+        	else
+        		query = query +"&"+"retentionstart" + comp + pickeddate;
+  		}
+		
+		if(searchby==='Ingestion Date' && !!pickeddate){
+        	var comp = "=";
+        	if(datecomparison==="=")
+        		comp = "=";
+        	if(datecomparison==="<")
+        		comp = "=lt_";
+        	if(datecomparison===">")
+        		comp = "=gt_";
+        	if(datecomparison==="bt"){
+   	    	
+        		if(!!pickeddate2)
+        		{
+        			if(validateDate(pickeddate2) && compareDate(pickeddate, pickeddate2))
+        	    	{
+        	    		error=false;
+        				errorMsg="";
+        	  		}
+        	    	else
+        	    	{
+        	    		error=true;
+        	    	}
+        	    	
+        			comp = "_bt_";
+        		}
+        		else
+        		{
+        			error=true;
+        			errorMsg="End Date Needed";
+        		}
+        	}
+        	
+        	if(datecomparison==="bt")
+       			query = query +"&"+"ingestiondate=" + pickeddate + comp + pickeddate2;
+        	else
+
+       		query = query +"&" + "ingestiondate" + comp + pickeddate;
+  		}
+  		
+		
+		if(!!query&& error===false){
+			url = url + query;
+			//alert(url);
+        	errorMsg="";
+        	$("#errorMsg").addClass('hidden');
+		}
+		else
+		{
+			$("#errorMsg").removeClass('hidden');
+			$("#errorMsg").html(errorMsg);
+		}
+  	
+		return url;
+  	  }
+  });
+
+  var ArchiveModel = Backbone.Model.extend({
+  	urlRoot: '/app/1/projects/' + projectid + '/archives'
+  });  
+
+  var ProjectModel = Backbone.Model.extend({
+  	urlRoot: '/public/aims/projects'
+  });
+
+  var UserModel = Backbone.Model.extend({
+    urlRoot: '/portal/projects/' + projectid + '/users'
+  });
+
+  var ArchiveListView = Backbone.View.extend({
+    el: '.page',
+    render: function(options) {
+    	var that = this;
+    	var archiveCollection = new ArchiveCollection();
+    	archiveCollection.fetch({
+    		success: function(archiveCollection) {
+    			var template = _.template($('#list-archive-template').html(), 
+    				{projectid: options.projectid, length: archiveCollection.length, archiveModels: archiveCollection.models});
+    	     	that.$el.html(template);
+    	     	archlength=archiveCollection.length;
+          
+    		}, 
+    		error: function() {
+     			var template = _.template($('#list-archive-template').html(), 
+    				{projectid: options.projectid, length: 0, archiveModels: null});
+    	     	that.$el.html(template);   			
+    		}
+    	});
+    },
+    events: {
+        'click .left': 'previous',
+        'click .right': 'next'
+    },
+    
+    next: function(e) {
+    	var that = this;
+    	if(archlength >= pagesize){
+			page++;
+			archiveListView.render({projectid: projectid});
+    	}
+    	if(page > 0)
+			 $(that).find('left').css("disabled");
+    },
+    
+    previous: function(e) {
+		if(page >= 1){
+			page--;
+			archiveListView.render({projectid: projectid});
+			if(page <= 1){
+				 $("#prev").addClass("disabled");
+			}
+		}
+    },
+
+    searchList: function(e) {
+    	page=0;
+        archiveListView.render({projectid: projectid});
+    }
+  });
+  var archiveListView = new ArchiveListView();
+
+  var ArchiveView = Backbone.View.extend({
+    el: '.page',
+    render: function(options) {
+      var that = this;
+      if (options.guid) {
+        that.archiveModel = new ArchiveModel({id: options.guid});
+        that.archiveModel.fetch({
+          success: function(archiveModel) {
+            var template = _.template($('#detail-archive-template').html(), {projectid: options.projectid, archive: archiveModel});
+            that.$el.html(template);
+          }
+        });
+      } 
+    }
+  });
+  var archiveView = new ArchiveView();
+
+  var ProjectView = Backbone.View.extend({
+  	el: '.project-info',
+  	render: function(options) {
+  		var that = this;
+      if (options.username) {
+        var userModel = new UserModel({id: options.username});
+        userModel.fetch({
+          success: function() {
+            var projectModel = new ProjectModel({id: options.projectid});
+            projectModel.fetch({
+              success: function(projectModel) {
+                var template = _.template($('#info-project-template').html(), {user: userModel, project: projectModel});
+                that.$el.html(template);
+              }
+            });            
+          }
+        });
+      }
+  	}
+  });
+  var projectView = new ProjectView();
+  
+  
+  var SearchView = Backbone.View.extend({
+	  	el: '.search-info',
+	  	render: function(options) {
+	  		var that = this;
+            var template = _.template($('#search-template').html());
+            that.$el.html(template);
+            that.$el.find($('#datetimepicker').datetimepicker({
+                format:'YYYY-MM-DD', 
+                pickTime:false
+              }));
+            that.$el.find($('#datetimepicker2').datetimepicker({
+                format:'YYYY-MM-DD', 
+                pickTime:false
+              }));
+	  	},
+	  	events: {
+	        'click .search-btn': 'searchList', 
+	        'click ul#datecomparison li':'comparator',
+        	'click ul#searchby li':'comparatoron',
+        	'click ul#recordperpage li':'showperpage',
+        	'click ul#sortby li':'sort',
+        	'click ul#order li':'order',	
+	    },
+
+	    sort: function(e) {
+	    	var val = $(e.currentTarget).text();
+	    	if(val === 'Ingestion Date')
+	    		sortby = 'ingestionsdate';
+	    	else if(val === 'Retention Start')
+	    		sortby = 'retentionstart';
+	    	else if(val === 'File Name')
+	    		sortby = 'filename';
+	    	else if(val === 'File Size')
+	    		sortby = 'filesize';
+	    	
+	        var $target = $( e.currentTarget );    
+	        $target.closest( '.btn-group' ).find( '[data-bind="label"]' ).text( $target.text() ).end().children( '.dropdown-toggle' ).html(val+' <span class="caret"></span>');
+	        page = 0;
+	        archiveListView.render({projectid: projectid});
+	    },
+	    
+	    order: function(e) {
+	    	var val = $(e.currentTarget).text();
+	    	if(val === 'Ascending')
+	    		order = 'asc';
+	    	else 
+	    		order = 'desc';
+	    	
+	        var $target = $( e.currentTarget );    
+	        $target.closest( '.btn-group' ).find( '[data-bind="label"]' ).text( $target.text() ).end().children( '.dropdown-toggle' ).html(val+' <span class="caret"></span>');
+	        page = 0;
+	        archiveListView.render({projectid: projectid});
+	    },
+	  
+	    showperpage: function(e) {
+	    	pagesize = $(e.currentTarget).text();
+	        var $target = $( e.currentTarget );    
+	        $target.closest( '.btn-group' ).find( '[data-bind="label"]' ).text( $target.text() ).end().children( '.dropdown-toggle' ).html(pagesize+' <span class="caret"></span>');
+	        page = 0;
+	        archiveListView.render({projectid: projectid});
+	    },
+	    comparator: function(e) {
+	    	
+	    	var that = this;
+	        datecomparison = $(e.currentTarget).text();
+	        var $target = $( e.currentTarget );    
+	        $target.closest( '.btn-group' ).find( '[data-bind="label"]' ).text( $target.text() ).end().children( '.dropdown-toggle' ).html(datecomparison+' <span class="caret"></span>');
+
+    	    if(datecomparison==='bt')
+    	    {
+    	    	$("#span-btween").removeClass('hidden');
+    	    	$("#datetimepicker2").removeClass('hidden');
+    	    }
+    	    else  
+ 	    	{
+    	    	$("#span-btween").addClass('hidden');
+    	    	$("#datetimepicker2").addClass('hidden');
+    	    }
+	    },
+	    
+	    comparatoron: function(e) {
+	    	var that = this;
+	        searchby = $(e.currentTarget).text();
+	        //$(that).parents('.btn-group').find('.dropdown-toggle').html(searchby+' <span class="caret"></span>');
+	        $(e.currentTarget).find('.dropdown-toggle').html(searchby+' <span class="caret"></span>');
+	        var $target = $( e.currentTarget );    
+	        $target.closest( '.btn-group' ).find( '[data-bind="label"]' ).text( $target.text() ).end().children( '.dropdown-toggle' ).html(searchby+' <span class="caret"></span>');
+	    },
+	    searchList: function(e) {
+	    	page=0;
+	    	archiveListView.render({projectid: projectid});
+	    }
+	  });
+  var searchView = new SearchView();
+	  
+
+  var Router = Backbone.Router.extend({
+  	routes: {
+  		'': 'list',
+      ':guid': 'detail'
+  	}
+  });
+
+  var router = new Router();
+  router.on('route:list', function() {
+  	projectView.render({username: username, projectid: projectid});
+  	 $("#searchDiv").removeClass('hidden');
+  	if(isDirty=== false)
+  	     searchView.render();
+    archiveListView.render({projectid: projectid});
+  });
+  
+  router.on('route:detail', function(guid) {
+    projectView.render({username: username, projectid: projectid});
+    archiveView.render({projectid: projectid, guid: guid});
+    $("#searchDiv").addClass('hidden');
+    isDirty = true;
+  });
+
+  Backbone.history.start();
+
+</script>
+
+}
